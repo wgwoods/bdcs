@@ -3,10 +3,14 @@ RUN dnf -y install xz-devel zlib-devel glib2-devel gobject-introspection-devel o
 
 ENV PATH ~/.cabal/bin:$PATH
 
-RUN cabal update
+# Install and build deps in a separate layer
+COPY haskell-rpm/ bdcs/haskell-rpm
+COPY importer/*.cabal bdcs/importer/
+# We only run cabal update etc. when the deps change
+RUN cabal update && cabal install happy && \
+    ( cd bdcs/importer; cabal install --only-dependencies )
 
 COPY importer /root/bdcs/importer/
 
-RUN cabal update && cabal install happy && \
-    cd /root/bdcs/importer && cabal install && cabal clean && \
+RUN cd /root/bdcs/importer && cabal install && cabal clean && \
     cd /root/.cabal && rm -rf lib logs packages
